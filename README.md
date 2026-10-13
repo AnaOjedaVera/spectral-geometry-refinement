@@ -1,82 +1,110 @@
-
 # Spectral Geometry Refinement (SGR)
 
 [![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 ![Scientific Software](https://img.shields.io/badge/Scientific-Software-8A2BE2)
 ![Spectral Analysis](https://img.shields.io/badge/Spectral-Analysis-0077B5)
 ![Clustering](https://img.shields.io/badge/Unsupervised-Clustering-teal)
-![Status](https://img.shields.io/badge/Status-In_Development-orange)
+![Status](https://img.shields.io/badge/Status-Research_Release-orange)
 
-**Spectral Geometry Refinement (SGR)** is an unsupervised framework designed to identify and characterize internal spectral structure within existing clusters using multiple representations of spectral geometry.
+**Spectral Geometry Refinement (SGR)** is an unsupervised, post-clustering framework for identifying and characterizing internal spectral structure using complementary representations of spectral geometry. SGR evaluates candidate subdivisions using Gaussian mixture models (GMMs), Bayesian Information Criterion (BIC), agreement between spectral views, co-association, and consensus clustering.
 
-Originally developed for asteroid spectral taxonomy, SGR examines spectral properties that may remain unresolved in an initial global clustering partition, including absorption features, spectral shape, local extrema, and continuum trends.
+## Research reference implementation
 
-## Overview
+**Important: The asteroid results reported in the doctoral thesis (11 global groups refined into 16 groups) were obtained using the original 2-GPU implementation with its three predefined spectral trend intervals.** The GPU file provided here is an unchanged copy of that implementation, renamed for repository use. The CPU file is the original CPU implementation with **only the default trend configuration changed** to match the GPU reference. All other CPU logic remains unchanged.
 
-SGR is a post-clustering refinement method. It does not replace the initial clustering algorithm. Instead, it evaluates individual clusters to determine whether their observations contain additional spectral structure supported by multiple geometric representations.
+| | GPU reference (`spectral_geometry_refinement_gpu.py`) | CPU alternative (`spectral_geometry_refinement_cpu.py`) |
+|---|---|---|
+| Role | Source code used for the thesis asteroid experiments | Accessible CPU implementation, aligned with the thesis trend configuration |
+| Trend intervals (default) | `(0.45, 0.55)`, `(0.55, 2.50)`, `(0.45, 2.50)` µm | Same |
+| 10-channel windows (default) | Disabled | Disabled (enabled in the original CPU file) |
+| GMM implementation | Custom CuPy-based full-covariance GMM | scikit-learn `GaussianMixture` |
+| Default numeric precision | GPU `float32` | NumPy / scikit-learn, generally `float64` |
+| Multi-GPU root-cluster parallelism | Supported for two GPUs | Not supported |
 
-The framework combines:
+**The two implementations are not guaranteed to produce identical partitions.** GMM initialization, numerical precision, optimizer/convergence details, and numerical backend can lead to different candidate assignments and refinements. The CPU alternative is provided for accessibility; it has **not** been demonstrated to reproduce the 16-group thesis result. No validation of numerical equivalence is claimed.
 
-- Spectral feature extraction and multi-view representations.
-- Gaussian mixture models (GMMs) and Bayesian Information Criterion (BIC) for evaluating candidate subdivisions.
-- Agreement analysis between spectral representations.
-- Consensus clustering based on observation co-association.
-- Hierarchical refinement with minimum cluster-size and acceptance constraints.
-- Quantitative and spectral characterization of the resulting subgroups.
+The GPU code also includes an optional CPU backend (`SGRConfig(gpu_backend="cpu")`), which uses scikit-learn for GMM fitting but otherwise follows the GPU file's feature-extraction implementation. This should likewise not be assumed to be identical to the separate CPU file without testing.
 
-Only subdivisions satisfying the specified acceptance criteria are retained. Clusters without sufficient evidence of internal structure preserve their original assignments.
+**Reproduction boundary:** the thesis result additionally requires the same input spectral matrix, wavelength grid, initial global cluster labels, explicit configuration overrides (if any), software environment, and random seeds. The defaults shown here are those present in the uploaded GPU source file; they do not by themselves establish every parameter used in the final experimental run.
 
-## Methodology
+## Installation
 
-The SGR workflow consists of five main stages:
+CPU:
 
-1. **Spectral feature extraction:** Characterize relevant properties of the spectral curves.
-2. **Multi-view analysis:** Construct complementary representations of spectral geometry.
-3. **Candidate evaluation:** Identify potential subdivisions using GMMs and model-selection criteria.
-4. **Consensus validation:** Evaluate agreement across representations and construct a consensus partition.
-5. **Recursive refinement:** Retain supported subdivisions and recursively evaluate eligible subgroups.
+```bash
+python -m pip install -r requirements.txt
+```
 
-The resulting partition preserves the hierarchical relationship between the initial clusters and their refined subgroups.
+NVIDIA GPU with a **compatible CUDA 12.x runtime**:
 
-## Research Application
+```bash
+python -m pip install -r requirements-gpu-cu12.txt
+```
 
-SGR was developed as part of a doctoral research project on unsupervised asteroid spectral classification.
+The correct CuPy package depends on the system CUDA environment; do not install conflicting CuPy variants. Package versions are not pinned because the original experimental environment has not yet been recorded.
 
-The methodology was evaluated using synthetic spectral experiments and applied to stellar, mineral, and asteroid spectra.
+## Quick start
 
-In the asteroid application, SGR refined three of the eleven groups identified by Dynamic Mixture of Finite Mixtures of Factor Analysers (Dynamic (MF)^2A), producing a partition containing sixteen spectral groups.
+SGR accepts a spectral matrix `X` of shape `(n_spectra, n_channels)`, corresponding wavelength values in µm, and an existing global cluster label for each spectrum. The global labels may come from Dynamic (MF)^2A or another upstream clustering method.
 
-The refinement revealed differences associated with absorption features and continuum behavior, providing additional information for the interpretation of asteroid spectral diversity.
+CPU:
 
-## Repository Structure
+```python
+from spectral_geometry_refinement_cpu import SGRConfig, run_sgr
 
-The repository is being prepared to include:
+config = SGRConfig()
+result = run_sgr(X, wavelengths, global_labels, config=config, make_plots=False)
+print(result.n_global_clusters, result.n_refined_clusters)
+```
 
-- The Python implementation of SGR.
-- Configuration files and experimental parameters.
-- Reproducible examples using synthetic spectra.
-- Evaluation and visualization utilities.
-- Documentation of the refinement methodology.
-- Tests and instructions for reproducing the reported analyses.
+GPU (default selects GPUs 0 and 1):
 
-## Availability
+```python
+from spectral_geometry_refinement_gpu import SGRConfig, run_sgr
 
-**Status: In development**
+config = SGRConfig(gpu_backend="gpu", gpu_devices=(0, 1))
+result = run_sgr(X, wavelengths, global_labels, config=config, make_plots=False)
+print(result.n_global_clusters, result.n_refined_clusters)
+```
 
-The research implementation is currently being organized for public release. Installation and usage instructions will be provided when the validated code and examples are available.
+The snippets above assume `X`, `wavelengths`, and `global_labels` are already loaded. The parallel GPU path uses Python multiprocessing with the `spawn` start method; execute from a properly guarded Python script when required by your operating system or interactive environment.
 
-## Limitations
+### Optional legacy 10-channel trend configuration
 
-SGR is designed to identify candidate internal spectral structure, not to establish new physical or taxonomic classes automatically.
+To recover the **original CPU trend settings** (not the settings used for the thesis asteroid result), explicitly override:
 
-Its performance depends on spectral separability, noise, the initial partition, and the geometric representations considered. Subdivision acceptance does not independently establish physical distinctness or reproducibility across datasets.
+```python
+config = SGRConfig(
+    trend_window_channels=(10,),
+    trend_include_full_region=True,
+    trend_regions=(),
+)
+```
+
+This alternative can generate many more trend views, significantly increasing computation time and potentially changing accepted splits.
+
+## Method overview
+
+SGR constructs geometric feature representations from supported spectral extrema and regional trends; selects GMM subdivision candidates using BIC and minimum cluster-size criteria; measures agreement among candidate views using ARI; builds a co-association consensus; and recursively refines clusters that satisfy its acceptance criteria. Clusters without accepted subdivision retain their assignments.
+
+SGR does not automatically establish physically distinct asteroid taxonomic classes. Interpretation requires inspection of spectral morphology and appropriate external evidence. Results depend on input clustering, spectral coverage, noise, and configured feature representations.
+
+## Repository contents
+
+```text
+spectral-geometry-refinement/
+├── README.md
+├── LICENSE
+├── requirements.txt
+├── requirements-gpu-cu12.txt
+├── spectral_geometry_refinement_cpu.py
+└── spectral_geometry_refinement_gpu.py
+```
 
 ## Citation
 
-A formal software citation will be added when the repository is released and the associated research reference is finalized.
+SGR was developed in doctoral research at Instituto Politécnico Nacional (IPN), Mexico. A versioned software citation and, if available, an archived DOI will be added after validation and release metadata are finalized.
 
-## Authors and Acknowledgments
+## License
 
-Developed as part of doctoral research at the Instituto Politécnico Nacional (IPN), Mexico.
-
-Detailed authorship, institutional acknowledgments, and licensing information will be finalized before public release.
+See [LICENSE](LICENSE). Confirm code ownership and institutional/third-party licensing permissions before public release.
