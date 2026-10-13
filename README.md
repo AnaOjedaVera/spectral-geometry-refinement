@@ -152,3 +152,18 @@ SGR was developed as part of doctoral research at Instituto Politécnico Naciona
 ## License
 
 See [LICENSE](LICENSE) for the repository’s stated MIT terms. Confirm ownership and any institutional or third-party licensing obligations before public release.
+
+---
+
+## Contact
+
+**Ana V. Ojeda Vera**  
+Doctoral Student in Data Science  
+CITEDI – Instituto Politécnico Nacional (IPN), Mexico  
+Email: **anaojedavera@gmail.com**
+
+[![Email](https://img.shields.io/badge/Email-D14836?style=flat&logo=gmail&logoColor=white)](mailto:anaojedavera@gmail.com)
+[![ORCID](https://img.shields.io/badge/ORCID-A6CE39?style=flat&logo=orcid&logoColor=white)](https://orcid.org/0009-0002-0748-9630)
+[![Google Scholar](https://img.shields.io/badge/Google_Scholar-4285F4?style=flat&logo=googlescholar&logoColor=white)](https://scholar.google.com/citations?user=HO17QvAAAAAJ&hl=es)
+[![ResearchGate](https://img.shields.io/badge/ResearchGate-00CCBB?style=flat&logo=researchgate&logoColor=white)](https://www.researchgate.net/profile/Ana-V-Ojeda)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/anaojedavera/)
