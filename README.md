@@ -43,6 +43,36 @@ python -m pip install -r requirements-gpu-cu12.txt
 
 The correct CuPy package depends on the system CUDA environment; do not install conflicting CuPy variants. Package versions are not pinned because the original experimental environment has not yet been recorded.
 
+## Run the demonstration (CPU; no external dataset required)
+
+The [synthetic experiment notebook](examples/SGR_Demo.ipynb) is the **recommended first step** for new users. It generates 120 VIS–NIR spectra belonging to four known synthetic populations organized into two initial global clusters. One global cluster contains three underlying populations; the other is a homogeneous control. SGR receives only the initial global labels and spectral measurements, not the known population labels.
+
+From the repository root, install the Python dependencies and launch Jupyter:
+
+```bash
+python -m pip install -r requirements.txt
+python -m pip install jupyterlab
+jupyter lab examples/SGR_Demo.ipynb
+```
+
+Run the notebook cells in order. It reports the original and refined cluster counts, accepted splits, an adjusted Rand index (ARI) against the known synthetic labels, a **full-spectrum Silhouette score** and the internal consensus diagnostics. The notebook also plots the synthetic and recovered spectral profiles and checks the stopping rule. Refer to [examples/README.md](examples/README.md) for interpretation and details. The example requires **no asteroid dataset and no GPU**.
+
+**Important:** the consensus Silhouette used internally by SGR and the Silhouette calculated in the original spectral feature space are different quantities. Do not interpret a high consensus Silhouette as proof of globally well-separated spectra. The notebook illustrates the algorithm but does not reproduce the dissertation's 16 asteroid groups.
+
+## Run the automated software tests
+
+From the repository root:
+
+```bash
+python tests/test_sgr.py
+```
+
+The original basic test suite checks (1) the default spectral trend regions, (2) correct handling of clusters too small to refine, including preservation of sample assignments, and (3) rejection of an inconsistent wavelength dimension. It creates its own synthetic inputs; **no input data files are required**.
+
+A successful run ends with `Ran 3 tests` followed by `OK` for this original test suite. If you have replaced it with an expanded test file, the number of tests may differ. `FAIL` means an assertion did not hold, `ERROR` means an unexpected exception occurred, and `Ran 0 tests` means no tests were discovered. See [tests/README.md](tests/README.md) for explanations.
+
+These checks validate limited software behavior; they **do not** establish recovery accuracy in general, CPU–GPU equivalence, or reproduction of the thesis asteroid results.
+
 ## Quick start
 
 SGR accepts a spectral matrix `X` of shape `(n_spectra, n_channels)`, corresponding wavelength values in µm, and an existing global cluster label for each spectrum. The global labels may come from Dynamic (MF)^2A or another upstream clustering method.
@@ -89,22 +119,36 @@ SGR constructs geometric feature representations from supported spectral extrema
 
 SGR does not automatically establish physically distinct asteroid taxonomic classes. Interpretation requires inspection of spectral morphology and appropriate external evidence. Results depend on input clustering, spectral coverage, noise, and configured feature representations.
 
+## Asteroid reference configuration
+
+[`configs/asteroids.py`](configs/asteroids.py) provides the **default parameters recorded in the original 2-GPU source code**, including the three spectral trend intervals. It is a configuration reference, **not** a complete independent record of every runtime setting used to obtain the dissertation results. Users should not assume the synthetic notebook's CPU configuration reproduces the asteroid experiment.
+
 ## Repository contents
 
 ```text
 spectral-geometry-refinement/
 ├── README.md
 ├── LICENSE
+├── CITATION.cff
+├── .gitignore
 ├── requirements.txt
 ├── requirements-gpu-cu12.txt
 ├── spectral_geometry_refinement_cpu.py
-└── spectral_geometry_refinement_gpu.py
+├── spectral_geometry_refinement_gpu.py
+├── configs/
+│   └── asteroids.py
+├── examples/
+│   ├── README.md
+│   └── SGR_Demo.ipynb
+└── tests/
+    ├── README.md
+    └── test_sgr.py
 ```
 
 ## Citation
 
-SGR was developed in doctoral research at Instituto Politécnico Nacional (IPN), Mexico. A versioned software citation and, if available, an archived DOI will be added after validation and release metadata are finalized.
+SGR was developed as part of doctoral research at Instituto Politécnico Nacional (IPN), Mexico. Use the repository’s [CITATION.cff](CITATION.cff) file or GitHub’s **Cite this repository** feature for the software attribution currently provided. A version-specific archive and DOI may be added after release metadata and reproducibility checks are finalized.
 
 ## License
 
-See [LICENSE](LICENSE). Confirm code ownership and institutional/third-party licensing permissions before public release.
+See [LICENSE](LICENSE) for the repository’s stated MIT terms. Confirm ownership and any institutional or third-party licensing obligations before public release.
